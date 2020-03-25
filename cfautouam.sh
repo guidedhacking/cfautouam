@@ -65,7 +65,7 @@ uninstall() {
   systemctl stop cfautouam.service
   systemctl disable cfautouam.timer
   systemctl disable cfautouam.service
-  #rm -R $install_parent_path"/cfautouam" #uncomment when going live
+  rm -R $install_parent_path"/cfautouam"
   exit
 }
 
