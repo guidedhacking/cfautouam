@@ -23,7 +23,7 @@ install_parent_path="/home"
 cf_email=""
 cf_apikey=""
 cf_zoneid=""
-upper_cpu_limit=10 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
+upper_cpu_limit=20 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
 lower_cpu_limit=5
 regular_status=$SL_HIGH
 regular_status_s=$SL_HIGH_S
