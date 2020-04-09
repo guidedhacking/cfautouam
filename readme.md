@@ -1,4 +1,6 @@
-# cfautouam - CloudFlare Under Attack Mode Automation 
+# cfautouam - CloudFlare Under Attack Mode Automation
+
+[![](https://img.youtube.com/vi/gVRgeELT2JU/0.jpg)](https://youtu.be/gVRgeELT2JU)
 
 ### What does it do
 Enables Cloudflare's Under Attack Mode based on CPU load percentage using the Cloudflare API.
