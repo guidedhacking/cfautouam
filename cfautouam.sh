@@ -65,7 +65,7 @@ uninstall() {
   systemctl stop cfautouam.service
   systemctl disable cfautouam.timer
   systemctl disable cfautouam.service
-  rm -R $install_parent_path"/cfautouam"
+  #rm -R $install_parent_path"/cfautouam" #uncomment when going live
   exit
 }
 
@@ -145,39 +145,47 @@ main() {
   curr_load=$?
 
   if [ $debug_mode == 1 ]; then
+    debug_mode=1 #needed to skip dumb shellcheck error
     #curr_load=5
-    time_limit_before_revert=30
+    #time_limit_before_revert=30
   fi
 
   # If UAM was recently enabled
 
   if [[ $curr_security_level == "$SL_UNDER_ATTACK" ]]; then
-    uam_enabled_time=$(<uamenabledtime)
+    uam_enabled_time=$(<$install_parent_path"/cfautouam/uamenabledtime")
     currenttime=$(date +%s)
     timediff=$((currenttime - uam_enabled_time))
 
-    # If time limit has passed
-    if [[ $timediff -gt $time_limit_before_revert ]]; then
+    # Problem Here
 
-      # If time limit has passed & cpu limit has normalized
-      if [[ $curr_load -lt $upper_cpu_limit ]]; then
+    # If time limit has not passed do nothing
+    if [[ $timediff -lt $time_limit_before_revert ]]; then
         if [ $debug_mode == 1 ]; then
-          echo "$(date) - cfautouam - CPU Load: $curr_load - CPU Below threshhold, time limit has passed" >>$install_parent_path"/cfautouam/cfautouam.log"
+          echo "$(date) - cfautouam - CPU Load: $curr_load - time limit has not passed regardless of CPU - do nothing" >>$install_parent_path"/cfautouam/cfautouam.log"
+        fi
+        exit
+    fi
+
+    # If time limit has passed & cpu load has normalized, then disable UAM
+    if [[ $timediff -gt $time_limit_before_revert && $curr_load -lt $upper_cpu_limit ]]; then
+        if [ $debug_mode == 1 ]; then
+          echo "$(date) - cfautouam - CPU Load: $curr_load - time limit has passed - CPU Below threshhold" >>$install_parent_path"/cfautouam/cfautouam.log"
         fi
         disable_uam
-      else
-        if [ $debug_mode == 1 ]; then
-          echo "$(date) - cfautouam - CPU Load: $curr_load - CPU Above threshhold, time limit has passed - do nothing" >>$install_parent_path"/cfautouam/cfautouam.log"
-        fi
-      fi
+        exit
+    fi
 
-    else
+    # If time limit has passed & cpu load has not normalized
+    if [[ $timediff -gt $time_limit_before_revert && $curr_load -gt $upper_cpu_limit ]]; then
       if [ $debug_mode == 1 ]; then
-        echo "$(date) - cfautouam - CPU Load: $curr_load - UAM already set, waiting out time limit" >>$install_parent_path"/cfautouam/cfautouam.log"
+        echo "$(date) - cfautouam - CPU Load: $curr_load - time limit has passed but CPU above threshhold, waiting out time limit" >>$install_parent_path"/cfautouam/cfautouam.log"
       fi
     fi
     exit
   fi
+
+  # If UAM is not enabled, continue
 
   # Enable and Disable UAM based on load
 
@@ -187,16 +195,16 @@ main() {
   #else if load is lower than limit
   elif [[ $curr_load -lt $lower_cpu_limit && $curr_security_level == "$SL_UNDER_ATTACK" ]]; then
     disable_uam
-  else
-    if [ $debug_mode == 1 ]; then
-      echo "$(date) - cfautouam - CPU Load: $curr_load - no change necessary" >>$install_parent_path"/cfautouam/cfautouam.log"
-    fi
+  #else
+    #if [ $debug_mode == 1 ]; then
+      #echo "$(date) - cfautouam - CPU Load: $curr_load - no change necessary" >>$install_parent_path"/cfautouam/cfautouam.log"
+    #fi
   fi
 }
 
 # End Functions
 
-# Main
+# Main -> command line arguments
 
 if [ "$1" = '-install' ]; then
   install
