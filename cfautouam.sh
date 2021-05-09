@@ -1,6 +1,6 @@
 #!/bin/bash
 # Cloudflare Auto Under Attack Mode = CF Auto UAM
-# version 0.9beta
+# version 0.99beta
 
 # Security Level Enums
 SL_OFF=0
@@ -10,6 +10,7 @@ SL_MEDIUM=3
 SL_HIGH=4
 SL_UNDER_ATTACK=5
 
+# Security Level Strings
 SL_OFF_S="off"
 SL_ESSENTIALLY_OFF_S="essentially_off"
 SL_LOW_S="low"
@@ -18,16 +19,16 @@ SL_HIGH_S="high"
 SL_UNDER_ATTACK_S="under_attack"
 
 #config
-debug_mode=1 # 1 = true, 0 = false
+debug_mode=1 # 1 = true, 0 = false, adds more logging & lets you edit vars to test the script
 install_parent_path="/home"
 cf_email=""
 cf_apikey=""
 cf_zoneid=""
-upper_cpu_limit=20 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
+upper_cpu_limit=25 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
 lower_cpu_limit=5
 regular_status=$SL_HIGH
 regular_status_s=$SL_HIGH_S
-time_limit_before_revert=$((60 * 10)) # 10 minutes by default
+time_limit_before_revert=$((60 * 5)) # 5 minutes by default
 #end config
 
 # Functions
@@ -37,17 +38,17 @@ install() {
 
   cat >$install_parent_path"/cfautouam/cfautouam.service" <<EOF
 [Unit]
-Description=Enable Cloudflare Under Attack Mode under high load
+Description=Automate Cloudflare Under Attack Mode
 [Service]
 ExecStart=$install_parent_path/cfautouam/cfautouam.sh
 EOF
 
   cat >$install_parent_path"/cfautouam/cfautouam.timer" <<EOF
 [Unit]
-Description=Enable Cloudflare Under Attack Mode under high load
+Description=Automate Cloudflare Under Attack Mode
 [Timer]
 OnBootSec=60
-OnUnitActiveSec=7
+OnUnitActiveSec=5
 AccuracySec=1
 [Install]
 WantedBy=timers.target
@@ -65,7 +66,11 @@ uninstall() {
   systemctl stop cfautouam.service
   systemctl disable cfautouam.timer
   systemctl disable cfautouam.service
-  #rm -R $install_parent_path"/cfautouam" #uncomment when going live
+  rm $install_parent_path"/cfautouam/cfstatus"
+  rm $install_parent_path"/cfautouam/uamdisabledtime"
+  rm $install_parent_path"/cfautouam/uamenabledtime"
+  rm $install_parent_path"/cfautouam/cfautouam.timer"
+  rm $install_parent_path"/cfautouam/cfautouam.service"
   exit
 }
 
@@ -96,10 +101,8 @@ enable_uam() {
 }
 
 get_current_load() {
-  numcores=$(grep -c 'model name' /proc/cpuinfo)
-  currload=$(uptime | awk -F'average:' '{ print $2 }' | awk '{print $1}' | sed 's/,/ /')
-  currload=$(bc <<<"scale=2; $currload / $numcores * 100")
-  currload=${currload%.*}
+  currload=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+  currload=$(echo "$currload/1" | bc)
   return $currload
 }
 
@@ -145,9 +148,10 @@ main() {
   curr_load=$?
 
   if [ $debug_mode == 1 ]; then
-    debug_mode=1 #needed to skip dumb shellcheck error
+    debug_mode=1 # random inconsequential line needed to hide a dumb shellcheck error
+	#edit vars here to debug the script
     #curr_load=5
-    #time_limit_before_revert=30
+    #time_limit_before_revert=15
   fi
 
   # If UAM was recently enabled
@@ -195,10 +199,10 @@ main() {
   #else if load is lower than limit
   elif [[ $curr_load -lt $lower_cpu_limit && $curr_security_level == "$SL_UNDER_ATTACK" ]]; then
     disable_uam
-  #else
-    #if [ $debug_mode == 1 ]; then
-      #echo "$(date) - cfautouam - CPU Load: $curr_load - no change necessary" >>$install_parent_path"/cfautouam/cfautouam.log"
-    #fi
+  else
+    if [ $debug_mode == 1 ]; then
+      echo "$(date) - cfautouam - CPU Load: $curr_load - no change necessary" >>$install_parent_path"/cfautouam/cfautouam.log"
+    fi
   fi
 }
 
