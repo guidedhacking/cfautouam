@@ -24,7 +24,7 @@ install_parent_path="/home"
 cf_email=""
 cf_apikey=""
 cf_zoneid=""
-upper_cpu_limit=25 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
+upper_cpu_limit=30 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
 lower_cpu_limit=5
 regular_status=$SL_HIGH
 regular_status_s=$SL_HIGH_S
@@ -172,7 +172,7 @@ main() {
     fi
 
     # If time limit has passed & cpu load has normalized, then disable UAM
-    if [[ $timediff -gt $time_limit_before_revert && $curr_load -lt $upper_cpu_limit ]]; then
+    if [[ $timediff -gt $time_limit_before_revert && $curr_load -lt $lower_cpu_limit ]]; then
         if [ $debug_mode == 1 ]; then
           echo "$(date) - cfautouam - CPU Load: $curr_load - time limit has passed - CPU Below threshhold" >>$install_parent_path"/cfautouam/cfautouam.log"
         fi
@@ -181,7 +181,7 @@ main() {
     fi
 
     # If time limit has passed & cpu load has not normalized
-    if [[ $timediff -gt $time_limit_before_revert && $curr_load -gt $upper_cpu_limit ]]; then
+    if [[ $timediff -gt $time_limit_before_revert && $curr_load -gt $lower_cpu_limit ]]; then
       if [ $debug_mode == 1 ]; then
         echo "$(date) - cfautouam - CPU Load: $curr_load - time limit has passed but CPU above threshhold, waiting out time limit" >>$install_parent_path"/cfautouam/cfautouam.log"
       fi
