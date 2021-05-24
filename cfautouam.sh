@@ -19,12 +19,12 @@ SL_HIGH_S="high"
 SL_UNDER_ATTACK_S="under_attack"
 
 #config
-debug_mode=1 # 1 = true, 0 = false, adds more logging & lets you edit vars to test the script
+debug_mode=0 # 1 = true, 0 = false, adds more logging & lets you edit vars to test the script
 install_parent_path="/home"
 cf_email=""
 cf_apikey=""
 cf_zoneid=""
-upper_cpu_limit=30 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
+upper_cpu_limit=35 # 10 = 10% load, 20 = 20% load.  Total load, taking into account # of cores
 lower_cpu_limit=5
 regular_status=$SL_HIGH
 regular_status_s=$SL_HIGH_S
@@ -34,7 +34,7 @@ time_limit_before_revert=$((60 * 5)) # 5 minutes by default
 # Functions
 
 install() {
-  mkdir $install_parent_path"/cfautouam"
+  mkdir $install_parent_path"/cfautouam" &>/dev/null
 
   cat >$install_parent_path"/cfautouam/cfautouam.service" <<EOF
 [Unit]
@@ -58,6 +58,7 @@ EOF
   systemctl enable $install_parent_path"/cfautouam/cfautouam.timer"
   systemctl enable $install_parent_path"/cfautouam/cfautouam.service"
   systemctl start cfautouam.timer
+  echo "$(date) - cfautouam - Installed" >>$install_parent_path"/cfautouam/cfautouam.log"
   exit
 }
 
@@ -66,11 +67,12 @@ uninstall() {
   systemctl stop cfautouam.service
   systemctl disable cfautouam.timer
   systemctl disable cfautouam.service
-  rm $install_parent_path"/cfautouam/cfstatus"
-  rm $install_parent_path"/cfautouam/uamdisabledtime"
-  rm $install_parent_path"/cfautouam/uamenabledtime"
+  rm $install_parent_path"/cfautouam/cfstatus" &>/dev/null
+  rm $install_parent_path"/cfautouam/uamdisabledtime" &>/dev/null
+  rm $install_parent_path"/cfautouam/uamenabledtime" &>/dev/null
   rm $install_parent_path"/cfautouam/cfautouam.timer"
   rm $install_parent_path"/cfautouam/cfautouam.service"
+  echo "$(date) - cfautouam - Uninstalled" >>$install_parent_path"/cfautouam/cfautouam.log"
   exit
 }
 
@@ -161,8 +163,6 @@ main() {
     currenttime=$(date +%s)
     timediff=$((currenttime - uam_enabled_time))
 
-    # Problem Here
-
     # If time limit has not passed do nothing
     if [[ $timediff -lt $time_limit_before_revert ]]; then
         if [ $debug_mode == 1 ]; then
@@ -180,7 +180,7 @@ main() {
         exit
     fi
 
-    # If time limit has passed & cpu load has not normalized
+    # If time limit has passed & cpu load has not normalized, wait
     if [[ $timediff -gt $time_limit_before_revert && $curr_load -gt $lower_cpu_limit ]]; then
       if [ $debug_mode == 1 ]; then
         echo "$(date) - cfautouam - CPU Load: $curr_load - time limit has passed but CPU above threshhold, waiting out time limit" >>$install_parent_path"/cfautouam/cfautouam.log"
@@ -212,23 +212,11 @@ main() {
 
 if [ "$1" = '-install' ]; then
   install
+  echo "$(date) - cfautouam - Installed" >>$install_parent_path"/cfautouam/cfautouam.log"
   exit
 elif [ "$1" = '-uninstall' ]; then
   uninstall
-  exit
-elif [ "$1" = '-disable_script' ]; then
-  systemctl disable cfautouam.timer
-  systemctl disable cfautouam.service
-  echo "$(date) - cfautouam - Script Manually Disabled" >>$install_parent_path"/cfautouam/cfautouam.log"
-  disable_uam
-  rm  $install_parent_path"/cfautouam/uamdisabledtime"
-  rm  $install_parent_path"/cfautouam/uamenabledtime"
-  exit
-elif [ "$1" = '-enable_script' ]; then
-  systemctl enable $install_parent_path"/cfautouam/cfautouam.timer"
-  systemctl enable $install_parent_path"/cfautouam/cfautouam.service"
-  systemctl start cfautouam.timer
-  echo "$(date) - cfautouam - Script Manually Enabled" >>$install_parent_path"/cfautouam/cfautouam.log"
+  echo "$(date) - cfautouam - Uninstalled" >>$install_parent_path"/cfautouam/cfautouam.log"
   exit
 elif [ "$1" = '-enable_uam' ]; then
   echo "$(date) - cfautouam - UAM Manually Enabled" >>$install_parent_path"/cfautouam/cfautouam.log"
@@ -237,7 +225,7 @@ elif [ "$1" = '-enable_uam' ]; then
 elif [ "$1" = '-disable_uam' ]; then
   echo "$(date) - cfautouam - UAM Manually Disabled" >>$install_parent_path"/cfautouam/cfautouam.log"
   disable_uam
-exit
+  exit
 elif [ -z "$1" ]; then
   main
   exit
