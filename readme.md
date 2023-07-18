@@ -74,21 +74,27 @@ Frequently Asked Questions
 --------------------------
 
 **Cloudflare's Under Attack Mode (UAM) - What is it?**
+
 Cloudflare's UAM is a protective feature designed to shield your site from DDoS attacks. When activated, it presents an interstitial page to your site's visitors. During this time, Cloudflare is busy analyzing the visitor's traffic to ensure it's legitimate.
 
 **CPU Load Thresholds - What are they?**
+
 These are the levels of CPU load that trigger the script to either enable or disable UAM. The CPU load is a percentage representation of your server's total capacity. For instance, if you set the upper threshold at 35, the script will switch on UAM when your server's CPU load goes beyond 35%.
 
 **Regular Security Level - What does this mean?**
+
 This refers to the security level that Cloudflare will default to when UAM is not active. You have the freedom to set this to any of Cloudflare's security levels, which include: "off", "essentially off", "low", "medium", or "high".
 
 **Time Limit before Reverting from UAM - What's this about?**
+
 This is a set minimum duration that the script will observe before it disables UAM after it has been enabled. This mechanism is in place to avoid quick toggling between states if your CPU load is hovering around the upper limit.
 
 **Installing the Script as a Service - How do I do this?**
+
 You can make the script a service by executing it with the -install argument. This action will generate a systemd service and timer that run the script at regular intervals.
 
 **Uninstalling the Script - How is this done?**
+
 To uninstall the script, you need to run it with the -uninstall argument. This will halt and disable the systemd service and timer, and also delete the script's files from your server.
 
 **Manually Enabling or Disabling UAM - How can I do this?**
