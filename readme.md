@@ -98,4 +98,5 @@ You can make the script a service by executing it with the -install argument. Th
 To uninstall the script, you need to run it with the -uninstall argument. This will halt and disable the systemd service and timer, and also delete the script's files from your server.
 
 **Manually Enabling or Disabling UAM - How can I do this?**
+
 To manually switch on UAM, you need to run the script with the -enable_uam argument. Conversely, to switch it off, use the -disable_uam argument.
