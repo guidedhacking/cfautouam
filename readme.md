@@ -100,3 +100,6 @@ To uninstall the script, you need to run it with the -uninstall argument. This w
 **Manually Enabling or Disabling UAM - How can I do this?**
 
 To manually switch on UAM, you need to run the script with the -enable_uam argument. Conversely, to switch it off, use the -disable_uam argument.
+
+
+GuidedHacking® - The Game Hacking Bible® - © 2025 Guided Hacking LLC. All Rights Reserved.
